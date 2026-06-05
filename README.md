@@ -53,7 +53,7 @@ microSD
 ✅ Backup Database Harian
 ✅ Struktur folder siap pakai
 
-#Keuntungannya:
+# Keuntungannya:
 eMMC lebih cepat untuk OS
 microSD mudah diganti saat penuh
 Jika Armbian rusak, data file tetap aman di SD Card
@@ -61,7 +61,7 @@ Backup lebih mudah.
 
 Ok, kita mulai
 
-#Langkah 1 - Aktifkan STB
+# Langkah 1 - Aktifkan STB
 
 Nyalakan dan hubungkan STB ke router, lalu akses melalui SSH (contoh: putty)
 Hostname: isi dengan IP STB, lihat IP nya di dalam pengaturan router
@@ -75,6 +75,10 @@ Password: 1234
 
 atau
 
-`bash <(curl -fsSL https://raw.githubusercontent.com/budijoi/Script-Installer-Web-Hosting-B860H/refs/heads/main/sc-v1.sh.sh)`
+`bash <(curl -fsSL https://raw.githubusercontent.com/budijoi/Script-Installer-Web-Hosting-B860H/refs/heads/main/sc-v1.sh)`
+
+atau
+
+`bash <(curl -fsSL https://raw.githubusercontent.com/budijoi/Script-Installer-Web-Hosting-B860H/refs/heads/main/sc-v1.sh)`
 
 Tunggu hingga proses selesai.
