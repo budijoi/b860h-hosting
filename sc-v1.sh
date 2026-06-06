@@ -1,162 +1,236 @@
 #!/bin/bash
 
+# =====================================================
+
+# B860H HOSTING EDITION V4 FINAL
+
+# Armbian + Nginx + PHP + MariaDB + FileBrowser
+
+# Storage SD Card + Swap SD Card + Auto Backup
+
+# =====================================================
+
 set -e
 
 clear
 
-echo "========================================="
-echo " B860H HOSTING EDITION V4"
-echo "========================================="
+echo "====================================================="
+echo "         B860H HOSTING EDITION V4 FINAL"
+echo "====================================================="
+echo ""
+echo "Komponen yang akan diinstall:"
+echo " - Nginx"
+echo " - PHP-FPM"
+echo " - MariaDB"
+echo " - FileBrowser"
+echo " - UFW Firewall"
+echo " - Fail2Ban"
+echo " - Auto Backup"
+echo " - Swap di SD Card"
+echo ""
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Jalankan sebagai root"
-    exit 1
+echo "ERROR: Jalankan sebagai root"
+exit 1
 fi
 
-#########################################
-# VALIDASI ROOTFS
-#########################################
+echo "====================================================="
+echo " INFORMASI SISTEM"
+echo "====================================================="
 
-ROOT_DEV=$(findmnt -n -o SOURCE /)
+hostnamectl | grep "Operating System" || true
 
-if [[ "$ROOT_DEV" != "/dev/mmcblk2p2" ]]; then
-    echo ""
-    echo "ERROR:"
-    echo "Root filesystem bukan eMMC."
-    echo "Script ini dibuat untuk layout:"
-    echo "/dev/mmcblk2p2 = eMMC"
-    echo ""
-    exit 1
-fi
+echo ""
+echo "Storage:"
+lsblk
 
-#########################################
-# VALIDASI STORAGE
-#########################################
+echo ""
 
-if ! mountpoint -q /mnt/storage; then
-
-    echo ""
-    echo "ERROR:"
-    echo "/mnt/storage belum ter-mount"
-    echo ""
-    exit 1
-fi
-
-#########################################
-# UPDATE
-#########################################
+echo "====================================================="
+echo " [1/12] UPDATE SISTEM"
+echo "====================================================="
 
 apt update
 apt upgrade -y
 
-#########################################
-# BASIC TOOLS
-#########################################
+echo ""
+echo "====================================================="
+echo " [2/12] INSTALL PAKET DASAR"
+echo "====================================================="
 
-apt install -y \
-curl \
-wget \
-nano \
-git \
-unzip \
-htop \
-sudo \
-ufw \
-fail2ban \
-ca-certificates
+apt install -y 
+curl 
+wget 
+nano 
+git 
+unzip 
+htop 
+sudo 
+ca-certificates 
+ufw 
+fail2ban
 
-#########################################
-# SWAP
-#########################################
+echo ""
+echo "====================================================="
+echo " [3/12] DETEKSI STORAGE"
+echo "====================================================="
+
+ROOT_DEVICE=$(findmnt -n -o SOURCE /)
+
+echo "Root filesystem:"
+echo "$ROOT_DEVICE"
+
+SD_PART=$(lsblk -lnpo NAME,FSTYPE | 
+awk '$2=="ext4"{print $1}' | 
+grep -v "$ROOT_DEVICE" | 
+head -n1)
+
+if [ -z "$SD_PART" ]; then
+echo ""
+echo "ERROR:"
+echo "Partisi SD Card ext4 tidak ditemukan."
+echo ""
+echo "Format SD Card ke ext4 terlebih dahulu."
+exit 1
+fi
+
+echo ""
+echo "Storage SD Card:"
+echo "$SD_PART"
+
+UUID=$(blkid -s UUID -o value "$SD_PART")
+
+mkdir -p /mnt/storage
+
+if ! grep -q "$UUID" /etc/fstab; then
+echo "UUID=$UUID /mnt/storage ext4 defaults,nofail 0 2" >> /etc/fstab
+fi
+
+systemctl daemon-reload
+mount -a
+
+echo ""
+echo "====================================================="
+echo " [4/12] MEMBUAT STRUKTUR STORAGE"
+echo "====================================================="
+
+mkdir -p /mnt/storage/files
+mkdir -p /mnt/storage/media
+mkdir -p /mnt/storage/backup
+mkdir -p /mnt/storage/website-data
+mkdir -p /mnt/storage/logs
+mkdir -p /mnt/storage/filebrowser
+
+echo "OK"
+
+echo ""
+echo "====================================================="
+echo " [5/12] MEMBUAT SWAP DI SD CARD"
+echo "====================================================="
 
 if [ ! -f /mnt/storage/swapfile ]; then
 
-    fallocate -l 1G /mnt/storage/swapfile
+```
+fallocate -l 1G /mnt/storage/swapfile
 
-    chmod 600 /mnt/storage/swapfile
+chmod 600 /mnt/storage/swapfile
 
-    mkswap /mnt/storage/swapfile
+mkswap /mnt/storage/swapfile
+```
+
 fi
 
-swapon /mnt/storage/swapfile || true
-
-grep -q swapfile /etc/fstab || \
+if ! grep -q "/mnt/storage/swapfile" /etc/fstab; then
 echo "/mnt/storage/swapfile none swap sw 0 0" >> /etc/fstab
+fi
+
+swapon -a || true
 
 echo "vm.swappiness=10" > /etc/sysctl.d/99-swappiness.conf
 
 sysctl -p /etc/sysctl.d/99-swappiness.conf
 
-#########################################
-# NGINX
-#########################################
+echo "Swap aktif"
 
-apt install nginx -y
+echo ""
+echo "====================================================="
+echo " [6/12] INSTALL NGINX"
+echo "====================================================="
+
+apt install -y nginx
 
 systemctl enable nginx
+systemctl restart nginx
 
-#########################################
-# PHP
-#########################################
+echo "Nginx OK"
 
-apt install -y \
-php-fpm \
-php-cli \
-php-common \
-php-curl \
-php-gd \
-php-mysql \
-php-mbstring \
-php-xml \
+echo ""
+echo "====================================================="
+echo " [7/12] INSTALL PHP"
+echo "====================================================="
+
+apt install -y 
+php-fpm 
+php-cli 
+php-common 
+php-curl 
+php-mysql 
+php-gd 
+php-mbstring 
+php-xml 
 php-zip
 
-#########################################
-# PHP TUNING
-#########################################
+echo "PHP OK"
 
-PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+echo ""
+echo "====================================================="
+echo " [8/12] INSTALL MARIADB"
+echo "====================================================="
 
-PHP_INI="/etc/php/$PHP_VER/fpm/php.ini"
-
-sed -i 's/memory_limit = .*/memory_limit = 128M/' $PHP_INI
-sed -i 's/upload_max_filesize = .*/upload_max_filesize = 512M/' $PHP_INI
-sed -i 's/post_max_size = .*/post_max_size = 512M/' $PHP_INI
-
-systemctl restart php${PHP_VER}-fpm
-
-#########################################
-# MARIADB
-#########################################
-
-apt install mariadb-server -y
+apt install -y mariadb-server mariadb-client
 
 systemctl enable mariadb
 systemctl start mariadb
 
-#########################################
-# WEBSITE
-#########################################
+echo "MariaDB OK"
 
-mkdir -p /var/www/html
+echo ""
+echo "====================================================="
+echo " [9/12] MEMBUAT WEBSITE DEFAULT"
+echo "====================================================="
 
 cat > /var/www/html/index.php << 'EOF'
+
 <?php
-phpinfo();
+echo "<h1>B860H Hosting Server</h1>";
+echo "<p>Powered by Armbian</p>";
 ?>
+
 EOF
 
 chown -R www-data:www-data /var/www/html
 
-#########################################
-# FILEBROWSER
-#########################################
+echo "Website default dibuat"
+
+echo ""
+echo "====================================================="
+echo " [10/12] INSTALL FILEBROWSER"
+echo "====================================================="
 
 curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
 
-id filebrowser >/dev/null 2>&1 || \
-useradd -r -s /usr/sbin/nologin filebrowser
+if [ ! -f /mnt/storage/filebrowser/filebrowser.db ]; then
 
-chown -R filebrowser:filebrowser /mnt/storage/files
+```
+filebrowser config init \
+-d /mnt/storage/filebrowser/filebrowser.db
+
+filebrowser users add admin admin12345678 \
+--perm.admin \
+-d /mnt/storage/filebrowser/filebrowser.db
+```
+
+fi
 
 cat > /etc/systemd/system/filebrowser.service << 'EOF'
 [Unit]
@@ -164,26 +238,33 @@ Description=FileBrowser
 After=network.target
 
 [Service]
-User=filebrowser
-Group=filebrowser
+Type=simple
+User=root
 
-ExecStart=/usr/local/bin/filebrowser \
--r /mnt/storage/files \
+ExecStart=/usr/local/bin/filebrowser 
+-r /mnt/storage/files 
+-d /mnt/storage/filebrowser/filebrowser.db 
+-a 0.0.0.0 
 -p 8080
 
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
+
 systemctl enable filebrowser
 systemctl restart filebrowser
 
-#########################################
-# FIREWALL
-#########################################
+echo "FileBrowser OK"
+
+echo ""
+echo "====================================================="
+echo " [11/12] FIREWALL & FAIL2BAN"
+echo "====================================================="
 
 ufw allow 22/tcp
 ufw allow 80/tcp
@@ -192,67 +273,100 @@ ufw allow 8080/tcp
 
 ufw --force enable
 
-#########################################
-# FAIL2BAN
-#########################################
-
 systemctl enable fail2ban
 systemctl restart fail2ban
 
-#########################################
-# BACKUP SCRIPT
-#########################################
+echo "Security OK"
+
+echo ""
+echo "====================================================="
+echo " [12/12] AUTO BACKUP"
+echo "====================================================="
 
 cat > /usr/local/bin/backup-web.sh << 'EOF'
 #!/bin/bash
 
 DATE=$(date +%F_%H-%M)
 
-tar -czf \
-/mnt/storage/backup/web-$DATE.tar.gz \
+tar -czf 
+/mnt/storage/backup/web-$DATE.tar.gz 
 /var/www/html
 EOF
 
 chmod +x /usr/local/bin/backup-web.sh
 
-cat > /usr/local/bin/backup-db.sh << 'EOF'
+cat > /usr/local/bin/backup-mariadb.sh << 'EOF'
 #!/bin/bash
 
 DATE=$(date +%F_%H-%M)
 
 mysqldump --all-databases \
-> /mnt/storage/backup/db-$DATE.sql
-EOF
 
-chmod +x /usr/local/bin/backup-db.sh
+> /mnt/storage/backup/mysql-$DATE.sql
+> EOF
 
-(crontab -l 2>/dev/null | grep -v backup-web.sh; \
+chmod +x /usr/local/bin/backup-mariadb.sh
+
+(crontab -l 2>/dev/null | grep -v backup-web.sh; 
 echo "0 2 * * * /usr/local/bin/backup-web.sh") | crontab -
 
-(crontab -l 2>/dev/null | grep -v backup-db.sh; \
-echo "30 2 * * * /usr/local/bin/backup-db.sh") | crontab -
+(crontab -l 2>/dev/null | grep -v backup-mariadb.sh; 
+echo "30 2 * * * /usr/local/bin/backup-mariadb.sh") | crontab -
 
-#########################################
-# INFO
-#########################################
+echo "Backup OK"
 
 IP=$(hostname -I | awk '{print $1}')
 
 echo ""
-echo "====================================="
-echo "INSTALLATION COMPLETE"
-echo "====================================="
+echo "====================================================="
+echo " INSTALASI SELESAI"
+echo "====================================================="
 echo ""
-echo "Web:"
+echo "Website:"
 echo "http://$IP"
 echo ""
 echo "FileBrowser:"
 echo "http://$IP:8080"
 echo ""
+echo "Login FileBrowser:"
+echo "user : admin"
+echo "pass : admin12345678"
+echo ""
 echo "Storage:"
 echo "/mnt/storage"
 echo ""
-echo "Next:"
-echo "mysql_secure_installation"
-echo "Install Cloudflared"
+echo "Website:"
+echo "/var/www/html"
 echo ""
+echo "Backup:"
+echo "/mnt/storage/backup"
+echo ""
+echo "====================================================="
+echo " LANGKAH SELANJUTNYA"
+echo "====================================================="
+echo ""
+echo "1. Install Cloudflared:"
+echo ""
+echo "wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
+echo "chmod +x cloudflared-linux-arm64"
+echo "mv cloudflared-linux-arm64 /usr/local/bin/cloudflared"
+echo ""
+echo "2. Login Cloudflare:"
+echo ""
+echo "cloudflared tunnel login"
+echo ""
+echo "3. Edit Website:"
+echo ""
+echo "nano /var/www/html/index.php"
+echo ""
+echo "atau"
+echo ""
+echo "nano /var/www/html/index.html"
+echo ""
+echo "4. Cek Service:"
+echo ""
+echo "systemctl status nginx"
+echo "systemctl status mariadb"
+echo "systemctl status filebrowser"
+echo ""
+echo "====================================================="
