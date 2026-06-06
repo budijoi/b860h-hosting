@@ -10,7 +10,7 @@ clear
 INSTALL_INFO="/root/budijoi-server-info.txt"
 
 echo "========================================="
-echo "      BUDIJOI SERVER INSTALLER"
+echo "      B860H HOMESERVER INSTALLER"
 echo "========================================="
 echo ""
 
