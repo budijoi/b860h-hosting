@@ -86,7 +86,7 @@ microSD:
 * /mnt/storage/filebrowser
 * /mnt/storage/swapfile
 
-## Instalasi
+## Instalasi manual
 
 chmod +x install.sh
 
@@ -126,6 +126,11 @@ admin12345678
 Segera ganti password setelah login.
 
 ---
+
+## Instalasi Otomatis
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/budijoi/b860h-hosting/refs/heads/main/install.sh)
+```
 
 ## Setelah Instalasi Selesai
 
