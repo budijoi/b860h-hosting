@@ -60,8 +60,8 @@ echo "========================================="
 
 # Jalankan Module
 
-bash modules/01-system.sh
-bash modules/02-storage.sh
+bash https://raw.githubusercontent.com/budijoi/b860h-hosting/refs/heads/main/modules/01-system.sh
+bash https://raw.githubusercontent.com/budijoi/b860h-hosting/refs/heads/main/modules/02-storage.sh
 
 echo ""
 echo "Tahap berikutnya akan dibuat pada modul selanjutnya."
