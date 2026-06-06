@@ -105,27 +105,20 @@ modules/
 Clone repository:
 
 ```bash
-git clone (https://github.com/budijoi/b860h-hosting/archive/refs/heads/main.zip)
-```
-
-Extract:
-```bash
-unzip main.zip
+git clone https://github.com/budijoi/b860h-hosting.git
 ```
 
 Masuk ke dalam folder
 ```bash
-cd b860h-hosting-main
+cd b860h-hosting
 ```
 
 Berikan izin eksekusi:
-
 ```bash
 chmod +x install.sh
 ```
 
 Jalankan installer:
-
 ```bash
 sudo ./install.sh
 ```
