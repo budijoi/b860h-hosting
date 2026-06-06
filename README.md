@@ -105,13 +105,17 @@ modules/
 Clone repository:
 
 ```bash
-git clone (https://raw.githubusercontent.com/budijoi/b860h-hosting/refs/heads/main/install.sh)
+git clone (https://github.com/budijoi/b860h-hosting/archive/refs/heads/main.zip)
 ```
 
-Masuk ke folder:
-
+Extract:
 ```bash
-cd budijoi-server-installer
+unzip main.zip
+```
+
+Masuk ke dalam folder
+```bash
+cd b860h-hosting-main
 ```
 
 Berikan izin eksekusi:
