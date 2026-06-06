@@ -60,8 +60,10 @@ echo "========================================="
 
 # Jalankan Module
 
-bash modules/01-system.sh
-bash modules/02-storage.sh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+bash "$SCRIPT_DIR/modules/01-system.sh"
+bash "$SCRIPT_DIR/modules/02-storage.sh"
 
 echo ""
 echo "Tahap berikutnya akan dibuat pada modul selanjutnya."
