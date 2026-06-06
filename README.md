@@ -113,6 +113,17 @@ Masuk ke dalam folder
 cd b860h-hosting
 ```
 
+Install dos2unix:
+```bash
+apt update
+apt install dos2unix -y
+```
+
+konversi semua script:
+```bash
+find . -name "*.sh" -exec dos2unix {} \;
+```
+
 Berikan izin eksekusi:
 ```bash
 chmod +x install.sh
