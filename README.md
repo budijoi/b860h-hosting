@@ -1,4 +1,6 @@
 # B860H HomeServer Installer
+[![Platform: Linux arm64](https://img.shields.io/badge/Platform-Linux%20%7C%20arm64%20%2F%20aarch64-orange.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 Ubah STB Android bekas menjadi Home Server ringan berbasis Armbian Linux.
 
