@@ -1,399 +1,297 @@
-## Ringkasan Arsitektur Final
+# B860H HomeServer Installer
 
-```text
-B860H V1
-│
-├── eMMC (8GB)
-│   ├── Armbian
-│   ├── Nginx
-│   ├── PHP-FPM
-│   ├── MariaDB
-│   ├── FileBrowser
-│   ├── Fail2Ban
-│   ├── UFW
-│   └── Cloudflared
-│
-└── microSD
-    ├── files
-    ├── media
-    ├── backup
-    ├── website-data
-    ├── logs
-    ├── filebrowser
-    │   └── filebrowser.db
-    └── swapfile
-```
+Ubah STB Android bekas menjadi Home Server ringan berbasis Armbian Linux.
 
-## Kondisi Perangkat yang Sudah Terbukti
+Dirancang khusus untuk perangkat seperti:
 
-```text
-eMMC    : /dev/mmcblk2p2
-microSD : /dev/mmcblk1p2
-RAM     : 1GB
-OS      : Armbian
-```
-
-## Target Installer
-
-Installer harus:
-
-✅ Deteksi otomatis root filesystem
-✅ Deteksi otomatis SD Card ext4
-✅ Mount otomatis ke `/mnt/storage`
-✅ Membuat swap 1GB di SD Card
-✅ Install Nginx
-✅ Install PHP-FPM
-✅ Install MariaDB
-✅ Install FileBrowser (database di SD Card)
-✅ Install UFW + Fail2Ban
-✅ Backup Website otomatis
-✅ Backup MariaDB otomatis
-✅ Menampilkan progress dan informasi yang jelas
+* ZTE B860H v1
+* Amlogic S905X
+* Armbian
 
 ---
 
-Installer otomatis untuk mengubah STB ZTE B860H V1 menjadi server hosting ringan berbasis Armbian.
+## Tentang Project
 
-## Fitur
+B860H HomeServer Installer adalah script instalasi interaktif yang dirancang untuk mempermudah proses mengubah STB Android bekas menjadi Home Server yang siap digunakan.
 
-* Nginx
+Installer akan memandu pengguna langkah demi langkah dan melakukan konfigurasi secara otomatis, sehingga cocok digunakan oleh pemula maupun pengguna yang sudah berpengalaman.
+
+---
+
+## Fitur Utama
+
+### Deteksi Otomatis
+
+* Deteksi Root Filesystem
+* Deteksi Storage Tambahan
+* Mount Storage Otomatis
+* Deteksi IP Address Otomatis
+
+### Web Server
+
+* NGINX
 * PHP-FPM
 * MariaDB
-* FileBrowser
-* UFW Firewall
-* Fail2Ban
-* Auto Backup
-* SD Card Storage
-* Swap di SD Card
 
-## Struktur Storage
+### File Manager
 
-eMMC:
+* File Browser berbasis Web
+* Upload dan Download File
+* Manajemen File melalui Browser
 
-* Armbian
-* Nginx
-* PHP
-* MariaDB
-* FileBrowser
+### Monitoring Server
 
-microSD:
+Menampilkan informasi:
 
-* /mnt/storage/files
-* /mnt/storage/media
-* /mnt/storage/backup
-* /mnt/storage/website-data
-* /mnt/storage/logs
-* /mnt/storage/filebrowser
-* /mnt/storage/swapfile
+* Hostname
+* Kernel Linux
+* Uptime
+* CPU Load
+* Suhu CPU
+* Penggunaan RAM
+* Penggunaan Swap
+* Penggunaan Storage
 
-## Instalasi manual
+### Halaman Otomatis
 
-chmod +x install.sh
-
-./install.sh
-
-## Cek Service
-
-systemctl status nginx
-
-systemctl status mariadb
-
-systemctl status filebrowser
-
-## Cek Swap
-
-swapon --show
-
-free -h
-
-## Website Root
-
-/var/www/html
-
-atau
-
-/mnt/storage/website-data/site1
-
-## FileBrowser
-
-[http://IP-STB:8080](http://IP-STB:8080)
-
-Default Login:
-
-admin
-admin12345678
-
-Segera ganti password setelah login.
-
----
-
-## Instalasi Otomatis
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/budijoi/b860h-hosting/refs/heads/main/install.sh)
-```
-
-## Setelah Instalasi Selesai
-
-### 1. Cek Service
-
-```bash
-systemctl status nginx
-systemctl status mariadb
-systemctl status filebrowser
-```
-
-Semua harus:
-
-```text
-active (running)
-```
-
----
-
-## 2. Cara Mengamankan MariaDB
-
-Pada MariaDB terbaru:
-
-```bash
-which mariadb-secure-installation
-```
-
-Jika ada:
-
-```bash
-mariadb-secure-installation
-```
-
-Jika tidak ada, MariaDB tetap aman menggunakan autentikasi socket bawaan Linux root.
-
-Cek:
-
-```bash
-mariadb
-```
-
----
-
-## 3. Cara Install Cloudflared
-
-Karena Armbian ARM64 sering tidak memiliki paket bawaan:
-
-```bash
-cd /tmp
-
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
-
-chmod +x cloudflared-linux-arm64
-
-mv cloudflared-linux-arm64 /usr/local/bin/cloudflared
-```
-
-Cek:
-
-```bash
-cloudflared version
-```
-
----
-
-## Login Cloudflare
-
-```bash
-cloudflared tunnel login
-```
-
-Akan muncul URL.
-
-Buka URL tersebut di browser.
-
-Pilih domain Cloudflare yang ingin digunakan.
-
----
-
-## Membuat Tunnel
-
-```bash
-cloudflared tunnel create b860h
-```
-
----
-
-## Konfigurasi Tunnel
-
-```bash
-mkdir -p ~/.cloudflared
-
-nano ~/.cloudflared/config.yml
-```
-
-Contoh:
-
-```yaml
-tunnel: TUNNEL-ID
-credentials-file: /root/.cloudflared/TUNNEL-ID.json
-
-ingress:
-
-  - hostname: web.domain.com
-    service: http://localhost:80
-
-  - hostname: files.domain.com
-    service: http://localhost:8080
-
-  - service: http_status:404
-```
-
----
-
-## Hubungkan DNS
-
-```bash
-cloudflared tunnel route dns b860h web.domain.com
-
-cloudflared tunnel route dns b860h files.domain.com
-```
-
----
-
-## Install Service Cloudflared
-
-```bash
-cloudflared service install
-
-systemctl enable cloudflared
-
-systemctl start cloudflared
-```
-
----
-
-## Cara Edit Website
-
-### Edit langsung
-
-```bash
-nano /var/www/html/index.php
-```
-
-atau
-
-```bash
-nano /var/www/html/index.html
-```
-
----
-
-### Pindahkan Website ke SD Card
-
-Buat folder:
-
-```bash
-mkdir -p /mnt/storage/website-data/site1
-```
-
-Edit Nginx:
-
-```bash
-nano /etc/nginx/sites-available/default
-```
-
-Cari:
-
-```nginx
-root /var/www/html;
-```
-
-Ganti:
-
-```nginx
-root /mnt/storage/website-data/site1;
-```
-
-Reload:
-
-```bash
-nginx -t
-
-systemctl reload nginx
-```
-
----
-
-## Upload Website Melalui FileBrowser
-
-Buka:
-
-```text
-http://IP-STB:8080
-```
-
-Upload ke:
-
-```text
-/mnt/storage/website-data/site1
-```
-
-Maka website langsung dapat dilayani oleh Nginx.
-
----
-
-## Backup Manual
-
-Website:
-
-```bash
-/usr/local/bin/backup-web.sh
-```
-
-Database:
-
-```bash
-/usr/local/bin/backup-mariadb.sh
-```
-
----
-
-## Jadwal Backup Otomatis
-
-```text
-02:00 Backup Website
-02:30 Backup MariaDB
-```
-
-Lokasi:
-
-```text
-/mnt/storage/backup
-```
-
----
-
-## Target Penggunaan
-
-Cocok untuk:
+Installer akan membuat:
 
 * Landing Page
-* Website Profil Perusahaan
-* Blog WordPress Ringan
-* File Sharing Keluarga
-* Backup Foto dan Video
-* Server Rumahan 24/7
+* Status Monitoring
+* Tutorial Instalasi
 
-Perkiraan penggunaan:
+---
 
-eMMC:
+## Perangkat yang Telah Diuji
 
-* 2.5–4 GB
+### Tested
 
-RAM Idle:
+* ZTE B860H v1
+* Amlogic S905X
+* RAM 1 GB
+* EMMC 8 GB
+* SDCARD 64 GB
+* Armbian
 
-* 300–500 MB
+### Kemungkinan Kompatibel
 
-Sisa RAM:
+* STB berbasis S905X
+* STB berbasis S905W
 
-* ±0.5 GB
+---
 
-Sisa Storage SD:
+## Struktur Installer
 
-* ±56 GB (dengan SD 64GB)
-  :::
+```text
+install.sh
+
+modules/
+├── 01-system.sh
+├── 02-storage.sh
+├── 03-swap.sh
+├── 04-nginx.sh
+├── 05-php.sh
+├── 06-mariadb.sh
+├── 07-filebrowser.sh
+├── 08-firewall.sh (inprogress)
+├── 09-landingpage.sh (inprogress)
+└── 10-finish.sh (inprogress)
+```
+
+---
+
+## Cara Instalasi
+
+Clone repository:
+
+```bash
+git clone (https://raw.githubusercontent.com/budijoi/b860h-hosting/refs/heads/main/install.sh)
+```
+
+Masuk ke folder:
+
+```bash
+cd budijoi-server-installer
+```
+
+Berikan izin eksekusi:
+
+```bash
+chmod +x install.sh
+```
+
+Jalankan installer:
+
+```bash
+sudo ./install.sh
+```
+
+---
+
+## Tahapan Instalasi
+
+### 1. System Preparation
+
+* Update Repository
+* Upgrade Sistem
+* Install Dependensi Dasar
+
+### 2. Storage Detection
+
+* Deteksi Root Filesystem
+* Deteksi Storage Tambahan
+* Konfigurasi Mount Point
+
+### 3. Swap Configuration
+
+Pilihan:
+
+* 512MB
+* 1GB
+* 2GB
+
+### 4. Install NGINX
+
+Instalasi dan konfigurasi Web Server.
+
+### 5. Install PHP-FPM
+
+Instalasi PHP untuk menjalankan aplikasi web.
+
+### 6. Install MariaDB
+
+Installer akan:
+
+* Menginstall MariaDB
+* Membuat user database
+* Membuat password acak
+* Menampilkan password untuk dicatat
+
+### 7. Install File Browser
+
+Installer akan:
+
+* Menginstall File Browser
+* Membuat akun admin
+* Membuat password acak
+* Menampilkan password untuk dicatat
+
+### 8. Konfigurasi Firewall
+
+Membuka port yang diperlukan.
+
+### 9. Generate Web Pages
+
+Membuat:
+
+* index.html
+* status.php
+* tutorial.html
+
+### 10. Finish
+
+Menampilkan ringkasan hasil instalasi.
+
+---
+
+## URL Setelah Instalasi
+
+Landing Page:
+
+```text
+http://IP-SERVER/
+```
+
+Status Monitoring:
+
+```text
+http://IP-SERVER/status.php
+```
+
+Tutorial:
+
+```text
+http://IP-SERVER/tutorial.html
+```
+
+File Browser:
+
+```text
+http://IP-SERVER/files
+```
+
+---
+
+## Informasi Login
+
+Semua informasi penting akan disimpan ke:
+
+```text
+/root/budijoi-server-info.txt
+```
+
+File tersebut berisi:
+
+* Informasi Server
+* Username dan Password MariaDB
+* Username dan Password File Browser
+* Informasi Storage
+* Informasi Swap
+
+---
+
+## Screenshot
+
+### Landing Page
+
+Tambahkan screenshot di sini.
+
+### Status Monitoring
+
+Tambahkan screenshot di sini.
+
+### Tutorial
+
+Tambahkan screenshot di sini.
+
+### File Browser
+
+Tambahkan screenshot di sini.
+
+---
+
+## Roadmap
+
+### Versi 1.0
+
+* NGINX
+* PHP-FPM
+* MariaDB
+* File Browser
+* Monitoring Server
+
+### Versi 2.0
+
+* SSL / HTTPS
+* Virtual Host Manager
+* Backup Otomatis
+* Multi Website Hosting
+
+### Versi 3.0
+
+* Docker Support
+* Reverse Proxy Manager
+* Dashboard Monitoring
+
+---
+
+## Lisensi
+
+MIT License
+
+---
+
+## Author
+
+B860H HomeServer Project
+Powered by Armbian Linux
